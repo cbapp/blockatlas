@@ -1,51 +1,59 @@
 package blockbook
 
 import (
-	"math/big"
+	"strconv"
 
 	"github.com/trustwallet/blockatlas/pkg/blockatlas"
 )
 
-func (s *EthereumSpecific) GetStatus() (blockatlas.Status, string) {
-	switch s.Status {
-	case -1:
-		return blockatlas.StatusPending, ""
-	case 0:
-		return blockatlas.StatusError, "Error"
-	case 1:
-		return blockatlas.StatusCompleted, ""
-	default:
-		return blockatlas.StatusError, "Unable to define transaction status"
+func (s *Transaction) GetStatus() (blockatlas.Status, string) {
+
+	confirmations, err := strconv.Atoi(s.Confirmations)
+	if err != nil {
+		return blockatlas.StatusError, ""
 	}
+
+	if confirmations > 0 {
+		return blockatlas.StatusCompleted, ""
+	}
+
+	return blockatlas.StatusPending, ""
 }
 
 func (t *Transaction) FromAddress() string {
-	if len(t.Vin) > 0 && len(t.Vin[0].Addresses) > 0 {
-		return t.Vin[0].Addresses[0]
-	}
-	return ""
+	return t.From
 }
 
 func (t *Transaction) GetFee() string {
-	status, _ := t.EthereumSpecific.GetStatus()
-	if status != blockatlas.StatusPending {
-		return t.Fees
-	}
-
-	gasLimit := t.EthereumSpecific.GasLimit
-	gasPrice, ok := new(big.Int).SetString(t.EthereumSpecific.GasPrice, 10)
-	if gasLimit == nil || !ok {
+	gasPrice, err := strconv.Atoi(t.GasPrice)
+	if err != nil {
 		return "0"
 	}
-	fee := new(big.Int).Mul(gasLimit, gasPrice)
-	return fee.String()
+
+	gasUsed, err := strconv.Atoi(t.GasUsed)
+	if err != nil {
+		return "0"
+	}
+
+	fees := gasUsed * gasPrice
+
+	status, _ := t.GetStatus()
+	if status != blockatlas.StatusPending {
+		return strconv.Itoa(fees)
+	}
+
+	gasLimit, err := strconv.Atoi(t.Gas)
+	if err != nil {
+		return "0"
+	}
+
+	fees = gasPrice * gasLimit
+
+	return strconv.Itoa(fees)
 }
 
 func (t *Transaction) ToAddress() string {
-	if len(t.Vout) > 0 && len(t.Vout[0].Addresses) > 0 {
-		return t.Vout[0].Addresses[0]
-	}
-	return ""
+	return t.To
 }
 
 func GetDirection(address, from, to string) blockatlas.Direction {

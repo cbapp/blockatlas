@@ -1,4 +1,4 @@
-package blockbook
+package blockbook_
 
 import (
 	"math/big"
@@ -7,7 +7,7 @@ import (
 )
 
 type Page struct {
-	Transactions []Transaction `json:"result,omitempty"`
+	Transactions []Transaction `json:"transactions,omitempty"`
 	Tokens       []Token       `json:"tokens,omitempty"`
 }
 
@@ -20,41 +20,24 @@ type Blockbook struct {
 	BestHeight int64 `json:"bestHeight"`
 }
 
-type EtherScan struct {
-	BlockHeight string `json:"result"`
-}
-
 type Backend struct {
 	Blocks int64 `json:"blocks"`
 }
 
 type Block struct {
-	Transactions []Transaction `json:"result"`
+	Transactions []Transaction `json:"txs"`
 }
 
 type Transaction struct {
-	BlockNumber       string `json:"blockNumber,omitempty"`
-	TimeStamp         string `json:"timeStamp,omitempty"`
-	TxID              string `json:"hash,omitempty"`
-	Nonce             string `json:"nonce,omitempty"`
-	BlockHash         string `json:"blockHash,omitempty"`
-	From              string `json:"from,omitempty"`
-	ContractAddress   string `json:"contractAddress,omitempty"`
-	To                string `json:"to,omitempty"`
-	Value             string `json:"value,omitempty"`
-	TokenName         string `json:"tokenName,omitempty"`
-	TokenSymbol       string `json:"tokenSymbol,omitempty"`
-	TokenDecimal      string `json:"tokenDecimal,omitempty"`
-	TransactionIndex  string `json:"transactionIndex,omitempty"`
-	Gas               string `json:"gas,omitempty"`
-	GasPrice          string `json:"gasPrice,omitempty"`
-	GasUsed           string `json:"gasUsed,omitempty"`
-	CumulativeGasUsed string `json:"cumulativeGasUsed,omitempty"`
-	Input             string `json:"input,omitempty"`
-	Confirmations     string `json:"confirmations,omitempty"`
-
-	// Always empty, doesn't exist on etherscan
-	TokenTransfers []TokenTransfer `json:"tokenTransfers,omitempty"`
+	TxID             string            `json:"txid"`
+	Vin              []Output          `json:"vin"`
+	Vout             []Output          `json:"vout"`
+	BlockHeight      int64             `json:"blockHeight"`
+	BlockTime        int64             `json:"blockTime"`
+	Value            string            `json:"value"`
+	Fees             string            `json:"fees"`
+	TokenTransfers   []TokenTransfer   `json:"tokenTransfers,omitempty"`
+	EthereumSpecific *EthereumSpecific `json:"ethereumSpecific,omitempty"`
 }
 
 type Output struct {

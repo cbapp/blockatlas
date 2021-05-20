@@ -6,12 +6,12 @@ gin:
 # If all - run all platforms in one binary. You can pick specific coin handle to run binary only with specific coin
 # Example: ethereum
 # You can see all the coin handles at coins/coins.yml file
-platform: [ all ]
+platform: [ ethereum ]
 
 # The transaction watcher
 observer:
   # Don't request blocks older than this
-  backlog: 3h
+  backlog: 300000s
   # Amount of time between fetching blocks concurrently
   fetch_blocks_interval: 1ms
   # Don't request more than N blocks at once
@@ -30,7 +30,7 @@ observer:
       prefetch_count: 10
 
 postgres:
-  url: postgresql://user:pass@localhost/blockatlas?sslmode=disable
+  url: postgresql://monolith:password@localhost/blockatlas?sslmode=disable
   log: false
 
 # [BNB] Binance DEX: https://www.binance.org/
@@ -61,8 +61,10 @@ tezos:
 
 # [ETH] Ethereum: https://ethereum.org
 ethereum:
-  blockbook_api: https://eth1.trezor.io
-  api: https://localhost:4567 #(Trust-Ray API)
+  # blockbook_api: https://eth1.trezor.io
+  # blockbook_api: https://ac-dev0.net:29136
+  blockbook_api: https://api-ropsten.etherscan.io
+  # api: https://api-ropsten.etherscan.io #(Trust-Ray API)
   collections_api: https://api.opensea.io
   #  collections_api_key: [opensea_api_key]
   rpc: https://main-rpc.linkpool.io
@@ -152,6 +154,7 @@ fio:
 
 # [BTC] Bitcoin: https://bitcoin.org/ (Blockbook API https://github.com/trezor/blockbook)
 bitcoin:
+  # api: https://tbtc2.trezor.io
   api: https://btc1.trezor.io
 
 litecoin:

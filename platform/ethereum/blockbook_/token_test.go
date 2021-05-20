@@ -1,4 +1,4 @@
-package blockbook
+package blockbook_
 
 import (
 	"reflect"

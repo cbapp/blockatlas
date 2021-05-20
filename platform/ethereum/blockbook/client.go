@@ -3,8 +3,21 @@ package blockbook
 import (
 	"fmt"
 	"net/url"
+	"strconv"
+	"time"
 
 	"github.com/trustwallet/blockatlas/pkg/blockatlas"
+)
+
+const (
+	// apiKey on etherscan ropsten.
+	apiKey = "Z85YCX6M4FFKUFKGTWDFYWHNPRZ823J4NI"
+
+	// path
+	path = "api"
+
+	// address
+	address = "0xFE5Eea7e15d4fD6Ff5F255Eff97803C3e361786D"
 )
 
 type Client struct {
@@ -24,32 +37,82 @@ func (c *Client) GetTokens(address string) ([]Token, error) {
 }
 
 func (c *Client) GetCurrentBlockNumber() (int64, error) {
-	var nodeInfo NodeInfo
-	err := c.Get(&nodeInfo, "api", nil)
+	timestampStr := fmt.Sprintf("%d", time.Now().UTC().Unix())
+
+	query := url.Values{
+		"module":    {"block"},
+		"action":    {"getblocknobytime"},
+		"timestamp": {timestampStr},
+		"apikey":    {apiKey},
+		"closest":   {"before"},
+	}
+
+	var reqResult EtherScan
+
+	err := c.Get(&reqResult, path, query)
 	if err != nil {
 		return 0, err
 	}
-	return nodeInfo.Blockbook.BestHeight, nil
+
+	res, err := strconv.ParseInt(reqResult.BlockHeight, 10, 64)
+	if err != nil {
+		return 0, err
+	}
+
+	return res, nil
 }
 
-func (c *Client) GetBlock(num int64) (block Block, err error) {
-	path := fmt.Sprintf("api/v2/block/%d", num)
-	err = c.Get(&block, path, nil)
-	return
+func (c *Client) GetBlock(num int64) (Block, error) {
+	var b Block
+
+	blockNumStr := fmt.Sprintf("%d", num)
+
+	query := url.Values{
+		"module":     {"account"},
+		"action":     {"tokentx"},
+		"startblock": {blockNumStr},
+		"endblock":   {blockNumStr},
+		"sort":       {"asc"},
+		"apiKey":     {apiKey},
+		"address":    {address},
+	}
+
+	fmt.Printf("😀 %s \n", query.Encode())
+
+	err := c.Get(&b, path, query)
+	if err != nil {
+		return b, err
+	}
+
+	fmt.Printf("🚨 %+v \n", b)
+
+	return b, nil
 }
 
 func (c *Client) getTransactions(address, contract string) (page *Page, err error) {
-	path := fmt.Sprintf("api/v2/address/%s", address)
-	query := url.Values{"page": {"1"}, "pageSize": {"25"}, "details": {"txs"}, "contract": {contract}}
+
+	query := url.Values{
+		"module":     {"account"},
+		"address":    {address},
+		"apikey":     {apiKey},
+		"startblock": {"0"},
+		"endblock":   {"999999999"},
+		"sort":       {"desc"},
+		"page":       {"1"},
+		"offset":     {"25"},
+	}
+
+	if contract != "" {
+		query.Add("action", "tokentx")
+	} else {
+		query.Add("action", "txlist")
+	}
+
 	err = c.Get(&page, path, query)
 	return
 }
 
 func (c *Client) getTokens(address string) ([]Token, error) {
-	var res Page
-	path := fmt.Sprintf("api/v2/address/%s", address)
-	query := url.Values{"details": {"tokenBalances"}}
-	err := c.Get(&res, path, query)
-
-	return res.Tokens, err
+	// TODO
+	return []Token{}, nil
 }

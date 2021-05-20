@@ -1,6 +1,7 @@
 package notifier
 
 import (
+	"fmt"
 	"strconv"
 
 	log "github.com/sirupsen/logrus"
@@ -39,11 +40,15 @@ func RunNotifier(database *db.Instance, delivery amqp.Delivery) {
 		addresses[i] = strconv.Itoa(int(txs[0].Coin)) + "_" + addresses[i]
 	}
 
+	fmt.Printf("😋😋😋😋😋😋😋😋😋😋 %+v", addresses)
+
 	if len(txs) < 1 {
+		fmt.Println("🐰🐰🐰🐰🐰🐰🐰🐰🐰🐰🐰🐰🐰🐰🐰🐰🐰🐰🐰🐰🐰🐰🐰🐰")
 		return
 	}
 	subscriptionsDataList, err := database.GetSubscriptionsForNotifications(addresses)
 	if err != nil || len(subscriptionsDataList) == 0 {
+		log.Error("failed to get subscriptionsDataList 🚨🚨", err)
 		return
 	}
 

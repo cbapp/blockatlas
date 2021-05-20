@@ -1,7 +1,7 @@
-package blockbook
+package blockbook_
 
 import (
-	"strconv"
+	"strings"
 
 	Address "github.com/trustwallet/blockatlas/pkg/address"
 	"github.com/trustwallet/blockatlas/pkg/blockatlas"
@@ -39,33 +39,18 @@ func NormalizePage(srcPage *Page, address, token string, coinIndex uint) blockat
 }
 
 func normalizeTx(srcTx *Transaction, coinIndex uint) blockatlas.Tx {
-	blockTime, err := strconv.ParseInt(srcTx.TimeStamp, 10, 64)
-	if err != nil {
-		return blockatlas.Tx{}
-	}
-
-	blockHeight, err := strconv.ParseInt(srcTx.BlockNumber, 10, 64)
-	if err != nil {
-		return blockatlas.Tx{}
-	}
-
-	nonce, err := strconv.ParseUint(srcTx.Nonce, 10, 64)
-	if err != nil {
-		return blockatlas.Tx{}
-	}
-
-	status, errReason := srcTx.GetStatus()
+	status, errReason := srcTx.EthereumSpecific.GetStatus()
 	normalized := blockatlas.Tx{
 		ID:       srcTx.TxID,
 		Coin:     coinIndex,
 		From:     srcTx.FromAddress(),
 		To:       srcTx.ToAddress(),
 		Fee:      blockatlas.Amount(srcTx.GetFee()),
-		Date:     blockTime,
-		Block:    normalizeBlockHeight(blockHeight),
+		Date:     srcTx.BlockTime,
+		Block:    normalizeBlockHeight(srcTx.BlockHeight),
 		Status:   status,
 		Error:    errReason,
-		Sequence: nonce,
+		Sequence: srcTx.EthereumSpecific.Nonce,
 	}
 	fillMeta(&normalized, srcTx, coinIndex)
 	return normalized
@@ -151,12 +136,8 @@ func fillTokenTransferWithAddress(final *blockatlas.Tx, tx *Transaction, address
 }
 
 func fillTransferOrContract(final *blockatlas.Tx, tx *Transaction, coinIndex uint) {
-	gasUsed, err := strconv.Atoi(tx.GasUsed)
-	if err != nil {
-		return
-	}
-
-	if gasUsed == 21000 {
+	gasUsed := tx.EthereumSpecific.GasUsed
+	if gasUsed != nil && gasUsed.Int64() == 21000 {
 		final.Meta = blockatlas.Transfer{
 			Value:    blockatlas.Amount(tx.Value),
 			Symbol:   coin.Coins[coinIndex].Symbol,
@@ -164,9 +145,25 @@ func fillTransferOrContract(final *blockatlas.Tx, tx *Transaction, coinIndex uin
 		}
 		return
 	}
-
-	final.Meta = blockatlas.ContractCall{
-		Input: "0x",
-		Value: tx.Value,
+	data := tx.EthereumSpecific.Data
+	if data == "" {
+		// old node doesn't have data field
+		final.Meta = blockatlas.ContractCall{
+			Input: "0x",
+			Value: tx.Value,
+		}
+	} else {
+		if len(strings.TrimPrefix(data, "0x")) > 0 {
+			final.Meta = blockatlas.ContractCall{
+				Input: data,
+				Value: tx.Value,
+			}
+		} else {
+			final.Meta = blockatlas.Transfer{
+				Value:    blockatlas.Amount(tx.Value),
+				Symbol:   coin.Coins[coinIndex].Symbol,
+				Decimals: coin.Coins[coinIndex].Decimals,
+			}
+		}
 	}
 }
