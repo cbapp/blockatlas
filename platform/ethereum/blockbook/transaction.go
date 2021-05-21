@@ -98,56 +98,60 @@ func fillMetaWithAddress(final *blockatlas.Tx, tx *Transaction, address, token s
 }
 
 func fillTokenTransfer(final *blockatlas.Tx, tx *Transaction, coinIndex uint) bool {
-	if len(tx.TokenTransfers) == 1 {
-		transfer := tx.TokenTransfers[0]
-		final.Meta = blockatlas.TokenTransfer{
-			Name:     transfer.Name,
-			Symbol:   transfer.Symbol,
-			TokenID:  transfer.Token,
-			Decimals: transfer.Decimals,
-			Value:    blockatlas.Amount(transfer.Value),
-			From:     transfer.From,
-			To:       transfer.To,
-		}
-		return true
+
+	decimal, err := strconv.Atoi(tx.TokenDecimal)
+	if err != nil {
+		return false
 	}
-	return false
+
+	final.Meta = blockatlas.TokenTransfer{
+		Name:     tx.TokenName,
+		Symbol:   tx.TokenSymbol,
+		TokenID:  tx.TokenName, // not specified on etherscan
+		Decimals: uint(decimal),
+		Value:    blockatlas.Amount(tx.Value),
+		From:     tx.From,
+		To:       tx.To,
+	}
+
+	return true
 }
 
 func fillTokenTransferWithAddress(final *blockatlas.Tx, tx *Transaction, address, token string, coinIndex uint) bool {
-	if len(tx.TokenTransfers) == 1 {
-		transfer := tx.TokenTransfers[0]
-		if transfer.To == address || transfer.From == address {
-			// filter token if specified
-			if token != "" {
-				if token != transfer.Token {
-					return false
-				}
-			}
-			direction := GetDirection(address, transfer.From, transfer.To)
-			metadata := blockatlas.TokenTransfer{
-				Name:     transfer.Name,
-				Symbol:   transfer.Symbol,
-				TokenID:  transfer.Token,
-				Decimals: transfer.Decimals,
-				Value:    blockatlas.Amount(transfer.Value),
-			}
-			if direction == blockatlas.DirectionSelf {
-				metadata.From = address
-				metadata.To = address
-			} else if direction == blockatlas.DirectionOutgoing {
-				metadata.From = address
-				metadata.To = transfer.To
-			} else {
-				metadata.From = transfer.From
-				metadata.To = address
-			}
-			final.Direction = direction
-			final.Meta = metadata
-			return true
-		}
+	decimal, err := strconv.Atoi(tx.TokenDecimal)
+	if err != nil {
+		return false
 	}
-	return false
+
+	if tx.To == address || tx.From == address {
+		// filter token if specified
+		if token != "" {
+			if token != tx.TokenName {
+				return false
+			}
+		}
+		direction := GetDirection(address, tx.From, tx.To)
+		metadata := blockatlas.TokenTransfer{
+			Name:     tx.TokenName,
+			Symbol:   tx.TokenSymbol,
+			TokenID:  tx.TokenName,
+			Decimals: uint(decimal),
+			Value:    blockatlas.Amount(tx.Value),
+		}
+		if direction == blockatlas.DirectionSelf {
+			metadata.From = address
+			metadata.To = address
+		} else if direction == blockatlas.DirectionOutgoing {
+			metadata.From = address
+			metadata.To = tx.To
+		} else {
+			metadata.From = tx.From
+			metadata.To = address
+		}
+		final.Direction = direction
+		final.Meta = metadata
+	}
+	return true
 }
 
 func fillTransferOrContract(final *blockatlas.Tx, tx *Transaction, coinIndex uint) {
